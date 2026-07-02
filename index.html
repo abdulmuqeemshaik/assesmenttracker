@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Adaptive Assessment Engine — practice Aptitude, Verbal Reasoning and Coding questions with instant explanations, charts, and a downloadable PDF report.">
+<title>Adaptive Assessment Engine</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<noscript>
+  <div style="padding:40px;font-family:sans-serif;color:#eee;background:#1a1a1a;min-height:100vh;">
+    This app needs JavaScript enabled to run. Please enable JavaScript and reload the page.
+  </div>
+</noscript>
+
+<!-- ══ ENTRY SCREEN ═════════════════════════════════════════════ -->
+<div id="login-screen" role="dialog" aria-labelledby="entry-title">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="login-logo-dot"></span>
+      Assessment Engine
+    </div>
+    <h2 id="entry-title">Welcome <em>In</em></h2>
+    <p class="login-sub">Enter a name so your results and history are labeled — no account or password needed. This runs entirely in your browser; nothing is sent to a server.</p>
+
+    <div class="login-error" id="login-error" role="alert" aria-live="assertive">⚠ &nbsp;Please enter a name to continue.</div>
+
+    <div class="login-field">
+      <label for="login-user">Your Name</label>
+      <input type="text" id="login-user" placeholder="e.g. Asha" autocomplete="off" maxlength="30"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+
+    <button class="btn-login" onclick="doLogin()">Continue →</button>
+
+    <div class="login-footer">Assessment Engine v3.0 &nbsp;·&nbsp; Runs 100% locally in your browser</div>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ══ START ════════════════════════════════════════════════════ -->
+<main id="start-screen">
+  <div class="logo"><span class="logo-dot"></span>Assessment Engine v3.0</div>
+  <h1>Master Every <em>Question Type</em></h1>
+  <p>Instant questions — Aptitude · Verbal · Coding — with detailed explanations after every answer.</p>
+  <div class="pills">
+    <div class="pill a"><span></span>Aptitude</div>
+    <div class="pill v"><span></span>Verbal Reasoning</div>
+    <div class="pill c"><span></span>Coding &amp; DSA</div>
+  </div>
+
+  <div id="user-stats" class="stats-row hidden" aria-live="polite"></div>
+
+  <p class="section-label" id="cat-label">Choose Category</p>
+  <div class="cat-grid" role="radiogroup" aria-labelledby="cat-label">
+    <div class="cat-card aptitude" role="radio" aria-checked="false" tabindex="0"
+         onclick="selectCat('aptitude',this)" onkeydown="catKey(event,'aptitude',this)">
+      <div class="cat-icon" aria-hidden="true">🧮</div>
+      <div class="cat-name">Aptitude</div>
+      <div class="cat-count">Math · Speed · Profit · Logic</div>
+    </div>
+    <div class="cat-card verbal" role="radio" aria-checked="false" tabindex="0"
+         onclick="selectCat('verbal',this)" onkeydown="catKey(event,'verbal',this)">
+      <div class="cat-icon" aria-hidden="true">📖</div>
+      <div class="cat-name">Verbal</div>
+      <div class="cat-count">Grammar · Analogy · RC · Code</div>
+    </div>
+    <div class="cat-card coding" role="radio" aria-checked="false" tabindex="0"
+         onclick="selectCat('coding',this)" onkeydown="catKey(event,'coding',this)">
+      <div class="cat-icon" aria-hidden="true">💻</div>
+      <div class="cat-name">Coding</div>
+      <div class="cat-count">Output · DSA · Complexity · OOP</div>
+    </div>
+    <div class="cat-card all selected" role="radio" aria-checked="true" tabindex="0" style="grid-column:span 3"
+         onclick="selectCat('all',this)" onkeydown="catKey(event,'all',this)">
+      <div class="cat-icon" aria-hidden="true">⚡</div>
+      <div class="cat-name">Mixed — All Categories</div>
+      <div class="cat-count">Randomly drawn from all three topics for a complete challenge</div>
+    </div>
+  </div>
+
+  <p class="section-label" id="count-label">Number of Questions</p>
+  <div class="q-count-row" role="radiogroup" aria-labelledby="count-label">
+    <button class="qbtn" role="radio" aria-checked="false" onclick="selectCount(5,this)">5</button>
+    <button class="qbtn active" role="radio" aria-checked="true" onclick="selectCount(10,this)">10</button>
+    <button class="qbtn" role="radio" aria-checked="false" onclick="selectCount(15,this)">15</button>
+    <button class="qbtn" role="radio" aria-checked="false" onclick="selectCount(20,this)">20</button>
+  </div>
+
+  <button class="btn-start" onclick="startAssessment()">▶ &nbsp;Start Assessment</button>
+
+  <div id="history-panel" class="history-panel hidden">
+    <p class="section-label">Your Recent Attempts</p>
+    <div id="history-list"></div>
+    <button class="btn-clear-history" onclick="clearHistory()">Clear History</button>
+  </div>
+</main>
+
+<!-- ══ ASSESSMENT ═══════════════════════════════════════════════ -->
+<section id="assessment-screen" class="hidden" aria-label="Assessment in progress">
+  <div class="top-bar">
+    <div class="top-left">
+      <span id="progress-text">Q 1 / 10</span>
+      <span class="cat-tag" id="cat-tag">MIXED</span>
+    </div>
+    <span id="timer" aria-label="Elapsed time">00:00</span>
+  </div>
+  <div class="track" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="prog-track">
+    <div class="fill" id="prog-fill" style="width:0%"></div>
+  </div>
+  <div class="q-card" id="q-card"></div>
+</section>
+
+<!-- ══ RESULTS ═══════════════════════════════════════════════════ -->
+<section id="results-screen" class="hidden" aria-label="Results">
+  <div class="results-header">
+    <div class="results-title">Assessment Complete</div>
+    <div class="score-badge" id="score-badge"></div>
+  </div>
+  <div class="results-meta" id="results-meta"></div>
+  <div id="chart-fallback" class="chart-fallback hidden">
+    ⚠ Charts couldn't load (offline or the Chart.js CDN is blocked). Your score summary above is still accurate.
+  </div>
+  <div class="charts" id="charts-grid">
+    <div class="chart-card"><div class="chart-title">Score Breakdown</div><canvas id="scorePie"></canvas></div>
+    <div class="chart-card"><div class="chart-title">Question Timeline</div><canvas id="accuracyChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title">Category Performance</div><canvas id="categoryChart"></canvas></div>
+    <div class="chart-card"><div class="chart-title">Difficulty Breakdown</div><canvas id="diffChart"></canvas></div>
+  </div>
+  <div class="review-title">Question Review — click any row to expand</div>
+  <div id="review-list"></div>
+  <div class="btn-row">
+    <button class="btn-dl" id="btn-pdf" onclick="exportPDF()">⬇ &nbsp;Download PDF Report</button>
+    <button class="btn-restart" onclick="restart()">↩ &nbsp;Try Again</button>
+  </div>
+</section>
+
+</div><!-- /wrap -->
+<script src="questions.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
